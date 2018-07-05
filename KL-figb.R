@@ -47,10 +47,15 @@ thetaseq <- sort(c(0,seq(-10,10,length.out=L1)))
 theta.zero<-which(thetaseq==0)
 omegaseq <- seq(0.001,2.5,length.out=L2)
 z <- matrix(NA,L1,L2)
+p <- matrix(NA,L1,L2*4)
+dim(p)<-c(L1,L2,4)
 zlist<-vector("list",3)
+plist<-vector("list",3)
 plotlist <- vector("list",3)
 plotlist2d <- vector("list",3)
 scenelist <- lapply(1:3,function(i) paste0("scene",i))
+
+tail.interest<-0.05
 
 par(mfrow=c(1,1))
 for(i in 1:3){
@@ -75,6 +80,12 @@ for(r in 1:L1){
     
     z[r,c] <- min(KL.exact(theta,omega,mu,sigma),5)
     zlist[[i]]<-z
+    p[r,c,] <- c(mu=mu,sigma=sigma,
+                low.over=pnorm(qlnorm(tail.interest,theta,omega),mu,sigma)/tail.interest,
+                high.under=(1-pnorm(qlnorm(1-tail.interest,theta,omega),mu,sigma))/tail.interest
+    )
+    plist[[i]]<- p
+    
   }
 }
 
@@ -99,5 +110,40 @@ for(r in 1:L1){
 plotlist2d[[1]]
 plotlist2d[[2]]
 plotlist2d[[3]]
+
+optima<-c("mode","mean","median")
+matplot(omegaseq,cbind(mode=plist[[1]][theta.zero,,3],
+                       mean=plist[[2]][theta.zero,,3],
+                       median=plist[[3]][theta.zero,,3]
+                       )*100-100,
+        type="l",xlab='omega',ylab='Percentage error in lower tail',log="xy")
+abline(h=25,lty=3)
+legend("topleft",col=1:3,lty=1:3,legend=optima)
+
+matplot(omegaseq,cbind(mode=plist[[1]][theta.zero,,4],
+                       mean=plist[[2]][theta.zero,,4],
+                       median=plist[[3]][theta.zero,,4]
+                       ),
+type="l",xlab='omega',ylab='Fold error in upper tail',log="xy")
+legend("topleft",col=1:3,lty=1:3,legend=optima)
+
+matplot(omegaseq,( cbind(mode=plist[[1]][theta.zero,,4],
+                       mean=plist[[2]][theta.zero,,4],
+                       median=plist[[3]][theta.zero,,4]
+                       ) *100-100 ) %>% abs(),
+type="l",xlab='omega',ylab='Fold error in upper tail',log="xy")
+
+matplot(omegaseq,cbind(mode=plist[[1]][theta.zero,,3],
+                       mean=plist[[2]][theta.zero,,3],
+                       median=plist[[3]][theta.zero,,3]
+)*100-100, col=1,
+type="l",xlab='omega',ylab='Percentage error in lower and upper tail',log="xy")
+abline(h=25,lty=3)
+legend("topleft",col=1,lty=1:3,legend=optima)
+matplot(omegaseq,( cbind(mode=plist[[1]][theta.zero,,4],
+                         mean=plist[[2]][theta.zero,,4],
+                         median=plist[[3]][theta.zero,,4]
+) *100-100 ) %>% abs(), col=2,
+type="l",add=T)
 
 #--------------------------------------------------------------------------------------------------------------#
